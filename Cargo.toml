@@ -1,0 +1,10 @@
+[package]
+name = "jpeg_dec_example"
+version = "0.1.0"
+authors = ["9names <60134748+9names@users.noreply.github.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+jpegdec_sys = { git = "https://github.com/9names/jpegdec_sys" }
