@@ -1,5 +1,3 @@
-#![feature(new_uninit)]
-
 use jpegdec_sys::*;
 use std::time::{SystemTime};
 
@@ -19,9 +17,7 @@ fn main() {
     // Full size
     {         
         let start = SystemTime::now();
-        // Need to let Rust trust us with some initialized memory to store our C data
-        let image = Box::<JPEGIMAGE>::new_zeroed();
-        let image = unsafe { image.assume_init() };
+        let image = Box::new(unsafe { JPEG_ZeroInitJPEGIMAGE() });
         let imgptr: *mut JPEGIMAGE = Box::into_raw(image);
     
         // include_bytes gives us an immutable slice, copy that into a mutable one if using unmodified JPEG_openRAM
@@ -45,8 +41,7 @@ fn main() {
     // Half size 
     {
         let start = SystemTime::now();
-        let image = Box::<JPEGIMAGE>::new_zeroed();
-        let image = unsafe { image.assume_init() };
+        let image = Box::new(unsafe { JPEG_ZeroInitJPEGIMAGE() });
         let imgptr: *mut JPEGIMAGE = Box::into_raw(image);
         unsafe {
             let opened = JPEG_openRAM(imgptr, TULIPS_CONST_PTR, TULIPS_CONST.len() as i32, DRAW_CALLBACK);
@@ -66,8 +61,7 @@ fn main() {
     // Quarter size 
     {
         let start = SystemTime::now();
-        let image = Box::<JPEGIMAGE>::new_zeroed();
-        let image = unsafe { image.assume_init() };
+        let image = Box::new(unsafe { JPEG_ZeroInitJPEGIMAGE() });
         let imgptr: *mut JPEGIMAGE = Box::into_raw(image);
         unsafe {
             let opened = JPEG_openRAM(imgptr, TULIPS_CONST_PTR, TULIPS_CONST.len() as i32, DRAW_CALLBACK);
