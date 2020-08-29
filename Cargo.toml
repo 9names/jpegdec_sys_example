@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 jpegdec_sys = { git = "https://github.com/9names/jpegdec_sys" }
+minifb = "^0.18.0"
