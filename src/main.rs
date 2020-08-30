@@ -1,5 +1,4 @@
 #[macro_use]
-extern crate lazy_static;
 use jpegdec_sys::JPEGDRAW;
 use jpegdec_sys::*;
 use minifb::{Key, Window, WindowOptions};
@@ -39,27 +38,47 @@ fn main() {
         let drawwidth = data.iWidth;
         let drawheight = data.iHeight;
         let pixeldata = data.pPixels;
+        let bpp = data.iBpp;
+        println!(
+            "x {} y {} width {} height {} bpp {}",
+            startx, starty, drawwidth, drawheight, bpp
+        );
 
         // let bpp = data.iBpp;
         // let mut cur_pixel: isize = 0;
+        for y in 0..drawheight {
+            let yoffset = y * drawwidth;
+            let y_draw_offset = (y + starty) * drawwidth;
 
-        for y in starty..drawheight {
-            let y_offset = y * WIDTH as i32;
-            let total_offset = (y_offset + startx) as usize;
-            let end_of_line = total_offset + (drawwidth as usize);
-            unsafe {
-                let fb_subset = &mut FB[total_offset..end_of_line];
-
-                fb_subset
-                    .iter_mut()
-                    .enumerate()
-                    .for_each(|(index, buf_elem)| {
-                        let idx = index as isize;
-                        //*buf_elem = *pixeldata.offset(idx) as u32;
-                        *buf_elem = rgb565_to_rgb888(*pixeldata.offset(idx));
-                    });
+            for x in startx..drawwidth {
+                let offset = (yoffset + x) as usize;
+                let draw_offset = (y_draw_offset + x) as usize;
+                //FB[offset] = *pixeldata.offset(offset as isize);
+                unsafe {
+                    let pix = rgb565_to_rgb888(*pixeldata.offset(offset as isize));
+                    let pix2 = *pixeldata.offset(offset as isize) as u32;
+                    FB[draw_offset] = pix;
+                }
             }
         }
+
+        // for y in starty..drawheight {
+        //     let y_offset = y * WIDTH as i32;
+        //     let total_offset = (y_offset + startx) as usize;
+        //     let end_of_line = total_offset + (drawwidth as usize);
+        //     unsafe {
+        //         let fb_subset = &mut FB[total_offset..end_of_line];
+
+        //         fb_subset
+        //             .iter_mut()
+        //             .enumerate()
+        //             .for_each(|(index, buf_elem)| {
+        //                 let idx = index as isize;
+        //                 //*buf_elem = *pixeldata.offset(idx) as u32;
+        //                 *buf_elem = rgb565_to_rgb888(*pixeldata.offset(idx));
+        //             });
+        //     }
+        // }
     }
 
     const DRAW_CALLBACK: JPEG_DRAW_CALLBACK = Some(callback);
