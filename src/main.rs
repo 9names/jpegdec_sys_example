@@ -20,9 +20,9 @@ static mut FB: Vec<u32> = Vec::new();
 /// Most RGB565 displays aren't that accurate anyway, but it's worth noting
 fn rgb565_to_rgb888(pixel: u16) -> u32 {
     // Unpack our 5bit and 6bit RGB elements
-    let r = pixel >> 11 & (0x20 - 1);
-    let g = pixel >> 5 & (0x40 - 1);
-    let b = pixel & (0x20 - 1);
+    let r = 0b0000_0000_0001_1111 & pixel >> 11;
+    let g = 0b0000_0000_0011_1111 & pixel >> 5;
+    let b = 0b0000_0000_0001_1111 * pixel;
     // Shift them up so they can get close to full scale
     let r8 = (r << 3) as u32;
     let g8 = (g << 2) as u32;
