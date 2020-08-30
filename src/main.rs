@@ -34,25 +34,26 @@ fn rgb565_to_rgb888(pixel: u16) -> u32 {
 /// Callback function for passing to JPEGDEC that will handle drawing
 extern "C" fn callback(p_draw: *mut JPEGDRAW) {
     let data = unsafe { *p_draw };
-    let startx = data.x as usize;
-    let starty = data.y as usize;
-    let drawwidth = data.iWidth as usize;
-    let drawheight = data.iHeight as usize;
-    let pixeldata = data.pPixels;
+    let start_x = data.x as usize;
+    let start_y = data.y as usize;
+    let draw_width = data.iWidth as usize;
+    let draw_height = data.iHeight as usize;
+    let pixel_data = data.pPixels;
+    // TODO: verify BPP, conditionally use different conversion function
     let _bpp = data.iBpp;
 
-    for y in 0..drawheight {
+    for y in 0..draw_height {
         // Since we're using byte indexes into single dimension objects for display, we need to calcuate
         // how far through we are for each x/y position. This is going to depend on the width of the 
         // buffer for both the source (JPEG) and destination (framebuffer) 
-        let yoffset = y * drawwidth;
-        let y_draw_offset = (y + starty) * WIDTH;
-        for x in 0..drawwidth {
-            let offset = x + yoffset;
-            let draw_offset = x + y_draw_offset + startx;
+        let src_y_offset = y * draw_width;
+        let dst_y_offset = (y + start_y) * WIDTH;
+        for x in 0..draw_width {
+            let src_offset = x + src_y_offset;
+            let dst_offset = x + dst_y_offset + start_x;
             unsafe {
-                let pix = rgb565_to_rgb888(*pixeldata.add(offset));
-                FB[draw_offset] = pix;
+                let pix = rgb565_to_rgb888(*pixel_data.add(src_offset));
+                FB[dst_offset] = pix;
             }
         }
     }
