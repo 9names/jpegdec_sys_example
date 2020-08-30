@@ -1,9 +1,7 @@
-#[macro_use]
 use jpegdec_sys::JPEGDRAW;
 use jpegdec_sys::*;
 use minifb::{Key, Window, WindowOptions};
 use std::time::SystemTime;
-use std::{thread, time};
 
 // Bundle tulips.jpg in our binary
 const TULIPS_CONST: &[u8; 56010] = include_bytes!("tulips.jpg");
@@ -28,29 +26,17 @@ fn rgb565_to_rgb888(pixel: u16) -> u32 {
 }
 
 extern "C" fn callback(p_draw: *mut JPEGDRAW) {
-    unsafe {
-        callback_count += 1;
-        if callback_count != draw_part {
-            return;
-        };
-    }
-
     let data = unsafe { *p_draw };
     let startx = data.x;
     let starty = data.y;
     let drawwidth = data.iWidth;
     let drawheight = data.iHeight;
     let pixeldata = data.pPixels;
-    let bpp = data.iBpp;
-    println!(
-        "x {} y {} width {} height {} bpp {}",
-        startx, starty, drawwidth, drawheight, bpp
-    );
+    let _bpp = data.iBpp;
 
     for y in 0..drawheight {
         let yoffset = y * drawwidth;
         let y_draw_offset = (y + starty) * 640;
-        println!("y_offset {} y_drawoffset {}", yoffset, y_draw_offset);
         for x in 0..drawwidth {
             let offset = (yoffset + x) as usize;
             let draw_offset = (startx + y_draw_offset + x) as usize;
@@ -61,9 +47,6 @@ extern "C" fn callback(p_draw: *mut JPEGDRAW) {
         }
     }
 }
-
-static mut draw_part: u32 = 1;
-static mut callback_count: u32 = 0;
 
 fn main() {
     unsafe {
@@ -84,14 +67,11 @@ fn main() {
     });
     window.limit_update_rate(Some(std::time::Duration::from_micros(1_000_000 / 60)));
 
-    let start = SystemTime::now();
     let image = Box::new(unsafe { JPEG_ZeroInitJPEGIMAGE() });
     let imgptr: *mut JPEGIMAGE = Box::into_raw(image);
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        unsafe {
-            window.update_with_buffer(&FB, WIDTH, HEIGHT).unwrap();
-        }
+        let start = SystemTime::now();
         unsafe {
             let opened = JPEG_openRAM(
                 imgptr,
@@ -111,14 +91,8 @@ fn main() {
                 println!("Last error: {}", errstr);
             }
         }
-        let sleeptime = time::Duration::from_millis(100);
-        thread::sleep(sleeptime);
         unsafe {
-            draw_part += 1;
-            callback_count = 0;
-            if draw_part > 150 {
-                draw_part = 0;
-            }
+            window.update_with_buffer(&FB, WIDTH, HEIGHT).unwrap();
         }
     }
 }
