@@ -42,7 +42,7 @@ extern "C" fn callback(p_draw: *mut JPEGDRAW) {
             let offset = x + yoffset;
             let draw_offset = x + y_draw_offset + startx;
             unsafe {
-                let pix = rgb565_to_rgb888(*pixeldata.offset(offset as isize));
+                let pix = rgb565_to_rgb888(*pixeldata.add(offset));
                 FB[draw_offset] = pix;
             }
         }
