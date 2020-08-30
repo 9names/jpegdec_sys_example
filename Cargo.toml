@@ -7,5 +7,5 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-jpegdec_sys = { git = "https://github.com/9names/jpegdec_sys" }
+jpegdec_sys = { git = "https://github.com/9names/jpegdec_sys", branch= "master" }
 minifb = "^0.18.0"
