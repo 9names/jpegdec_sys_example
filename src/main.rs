@@ -3,6 +3,7 @@ use jpegdec_sys::JPEGDRAW;
 use jpegdec_sys::*;
 use minifb::{Key, Window, WindowOptions};
 use std::time::SystemTime;
+use std::{thread, time};
 
 // Bundle tulips.jpg in our binary
 const TULIPS_CONST: &[u8; 56010] = include_bytes!("tulips.jpg");
@@ -24,6 +25,9 @@ fn rgb565_to_rgb888(pixel: u16) -> u32 {
     r8 << 16 | g8 << 8 | b8
 }
 
+static mut draw_part:u32 = 1;
+static mut callback_count:u32 = 0;
+
 fn main() {
     // Can't access static mut safely, press the "I believe" button
     unsafe {
@@ -32,6 +36,12 @@ fn main() {
     }
     ///TODO: write a real draw callback
     extern "C" fn callback(p_draw: *mut JPEGDRAW) {
+        unsafe {
+            callback_count += 1;
+            if callback_count!=draw_part {return};
+        }
+        
+
         let data = unsafe { *p_draw };
         let startx = data.x;
         let starty = data.y;
@@ -50,35 +60,18 @@ fn main() {
             let yoffset = y * drawwidth;
             let y_draw_offset = (y + starty) * drawwidth;
 
-            for x in startx..drawwidth {
+            for x in 0..drawwidth {
                 let offset = (yoffset + x) as usize;
-                let draw_offset = (y_draw_offset + x) as usize;
+                let draw_offset = (startx + y_draw_offset + x) as usize;
                 //FB[offset] = *pixeldata.offset(offset as isize);
                 unsafe {
                     let pix = rgb565_to_rgb888(*pixeldata.offset(offset as isize));
-                    let pix2 = *pixeldata.offset(offset as isize) as u32;
+                    //let pix2 = *pixeldata.offset(offset as isize) as u32;
                     FB[draw_offset] = pix;
                 }
             }
         }
 
-        // for y in starty..drawheight {
-        //     let y_offset = y * WIDTH as i32;
-        //     let total_offset = (y_offset + startx) as usize;
-        //     let end_of_line = total_offset + (drawwidth as usize);
-        //     unsafe {
-        //         let fb_subset = &mut FB[total_offset..end_of_line];
-
-        //         fb_subset
-        //             .iter_mut()
-        //             .enumerate()
-        //             .for_each(|(index, buf_elem)| {
-        //                 let idx = index as isize;
-        //                 //*buf_elem = *pixeldata.offset(idx) as u32;
-        //                 *buf_elem = rgb565_to_rgb888(*pixeldata.offset(idx));
-        //             });
-        //     }
-        // }
     }
 
     const DRAW_CALLBACK: JPEG_DRAW_CALLBACK = Some(callback);
@@ -98,28 +91,32 @@ fn main() {
     let image = Box::new(unsafe { JPEG_ZeroInitJPEGIMAGE() });
     let imgptr: *mut JPEGIMAGE = Box::into_raw(image);
 
-    unsafe {
-        let opened = JPEG_openRAM(
-            imgptr,
-            TULIPS_CONST_PTR,
-            TULIPS_CONST.len() as i32,
-            DRAW_CALLBACK,
-        );
-        if opened != 0 {
-            let rc = JPEG_decode(imgptr, 0, 0, 0);
-            if rc != 0 {
-                let elapsed = SystemTime::now().duration_since(start).unwrap().as_micros();
-                println!("full size decode in {} us", elapsed);
-            }
-            JPEG_close(imgptr);
-        } else {
-            let errstr = JPEG_getLastError(imgptr);
-            println!("Last error: {}", errstr);
-        }
-    }
+    
     while window.is_open() && !window.is_key_down(Key::Escape) {
         unsafe {
             window.update_with_buffer(&FB, WIDTH, HEIGHT).unwrap();
         }
+        unsafe {
+            let opened = JPEG_openRAM(
+                imgptr,
+                TULIPS_CONST_PTR,
+                TULIPS_CONST.len() as i32,
+                DRAW_CALLBACK,
+            );
+            if opened != 0 {
+                let rc = JPEG_decode(imgptr, 0, 0, 0);
+                if rc != 0 {
+                    let elapsed = SystemTime::now().duration_since(start).unwrap().as_micros();
+                    println!("full size decode in {} us", elapsed);
+                }
+                JPEG_close(imgptr);
+            } else {
+                let errstr = JPEG_getLastError(imgptr);
+                println!("Last error: {}", errstr);
+            }
+        }
+        let sleeptime = time::Duration::from_millis(100);
+        thread::sleep(sleeptime);
+        unsafe {draw_part+=1;callback_count=0;}
     }
 }
