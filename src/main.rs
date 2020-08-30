@@ -25,6 +25,7 @@ fn rgb565_to_rgb888(pixel: u16) -> u32 {
     r8 << 16 | g8 << 8 | b8
 }
 
+/// Callback function for passing to JPEGDEC that will handle drawing
 extern "C" fn callback(p_draw: *mut JPEGDRAW) {
     let data = unsafe { *p_draw };
     let startx = data.x as usize;
@@ -54,12 +55,11 @@ fn main() {
         FB = vec![0; WIDTH * HEIGHT]
     }
 
-    const DRAW_CALLBACK: JPEG_DRAW_CALLBACK = Some(callback);
     // Create our window so we've got somewhere to put our pixels
     let mut window = Window::new(
         "JPEGDEC demo - ESC to exit",
-        640,
-        480,
+        WIDTH,
+        HEIGHT,
         WindowOptions::default(),
     )
     .unwrap_or_else(|e| {
@@ -69,6 +69,7 @@ fn main() {
 
     let image = Box::new(unsafe { JPEG_ZeroInitJPEGIMAGE() });
     let imgptr: *mut JPEGIMAGE = Box::into_raw(image);
+    const DRAW_CALLBACK: JPEG_DRAW_CALLBACK = Some(callback);
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
         let start = SystemTime::now();
