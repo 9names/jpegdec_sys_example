@@ -14,7 +14,7 @@ const HEIGHT: usize = 480;
 static mut FB: Vec<u32> = Vec::new();
 
 /// Convert RGB565 (bit-packed in u16) to RGB888 (bit-packed in u32)
-/// Our source JPG is RGB565, but minifb wants RGBA data
+/// Our source JPG is RGB565, but minifb wants ARGB data
 fn rgb565_to_rgb888(pixel: u16) -> u32 {
     let r = pixel >> 11 & (0x20 - 1);
     let g = pixel >> 5 & (0x40 - 1);
@@ -27,19 +27,19 @@ fn rgb565_to_rgb888(pixel: u16) -> u32 {
 
 extern "C" fn callback(p_draw: *mut JPEGDRAW) {
     let data = unsafe { *p_draw };
-    let startx = data.x;
-    let starty = data.y;
-    let drawwidth = data.iWidth;
-    let drawheight = data.iHeight;
+    let startx = data.x as usize;
+    let starty = data.y as usize;
+    let drawwidth = data.iWidth as usize;
+    let drawheight = data.iHeight as usize;
     let pixeldata = data.pPixels;
     let _bpp = data.iBpp;
 
     for y in 0..drawheight {
         let yoffset = y * drawwidth;
-        let y_draw_offset = (y + starty) * 640;
+        let y_draw_offset = (y + starty) * WIDTH;
         for x in 0..drawwidth {
-            let offset = (yoffset + x) as usize;
-            let draw_offset = (startx + y_draw_offset + x) as usize;
+            let offset = x + yoffset;
+            let draw_offset = x + y_draw_offset + startx;
             unsafe {
                 let pix = rgb565_to_rgb888(*pixeldata.offset(offset as isize));
                 FB[draw_offset] = pix;
