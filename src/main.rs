@@ -8,7 +8,6 @@ use std::{thread, time};
 // Bundle tulips.jpg in our binary
 const TULIPS_CONST: &[u8; 56010] = include_bytes!("tulips.jpg");
 const TULIPS_CONST_PTR: *const u8 = TULIPS_CONST.as_ptr();
-//let tulipsptr = TULIPS_CONST.as_ptr();
 
 const WIDTH: usize = 640;
 const HEIGHT: usize = 480;
@@ -28,6 +27,41 @@ fn rgb565_to_rgb888(pixel: u16) -> u32 {
     r8 << 16 | g8 << 8 | b8
 }
 
+extern "C" fn callback(p_draw: *mut JPEGDRAW) {
+    unsafe {
+        callback_count += 1;
+        if callback_count != draw_part {
+            return;
+        };
+    }
+
+    let data = unsafe { *p_draw };
+    let startx = data.x;
+    let starty = data.y;
+    let drawwidth = data.iWidth;
+    let drawheight = data.iHeight;
+    let pixeldata = data.pPixels;
+    let bpp = data.iBpp;
+    println!(
+        "x {} y {} width {} height {} bpp {}",
+        startx, starty, drawwidth, drawheight, bpp
+    );
+
+    for y in 0..drawheight {
+        let yoffset = y * drawwidth;
+        let y_draw_offset = (y + starty) * 640;
+        println!("y_offset {} y_drawoffset {}", yoffset, y_draw_offset);
+        for x in 0..drawwidth {
+            let offset = (yoffset + x) as usize;
+            let draw_offset = (startx + y_draw_offset + x) as usize;
+            unsafe {
+                let pix = rgb565_to_rgb888(*pixeldata.offset(offset as isize));
+                FB[draw_offset] = pix;
+            }
+        }
+    }
+}
+
 static mut draw_part: u32 = 1;
 static mut callback_count: u32 = 0;
 
@@ -35,40 +69,6 @@ fn main() {
     unsafe {
         // Can't const init a static Vec yet, so replace the FB here
         FB = vec![0; WIDTH * HEIGHT]
-    }
-    extern "C" fn callback(p_draw: *mut JPEGDRAW) {
-        unsafe {
-            callback_count += 1;
-            if callback_count != draw_part {
-                return;
-            };
-        }
-
-        let data = unsafe { *p_draw };
-        let startx = data.x;
-        let starty = data.y;
-        let drawwidth = data.iWidth;
-        let drawheight = data.iHeight;
-        let pixeldata = data.pPixels;
-        let bpp = data.iBpp;
-        println!(
-            "x {} y {} width {} height {} bpp {}",
-            startx, starty, drawwidth, drawheight, bpp
-        );
-
-        for y in 0..drawheight {
-            let yoffset = y * drawwidth;
-            let y_draw_offset = (y + starty) * 640;
-            println!("y_offset {} y_drawoffset {}", yoffset, y_draw_offset);
-            for x in 0..drawwidth {
-                let offset = (yoffset + x) as usize;
-                let draw_offset = (startx + y_draw_offset + x) as usize;
-                unsafe {
-                    let pix = rgb565_to_rgb888(*pixeldata.offset(offset as isize));
-                    FB[draw_offset] = pix;
-                }
-            }
-        }
     }
 
     const DRAW_CALLBACK: JPEG_DRAW_CALLBACK = Some(callback);
