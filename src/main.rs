@@ -14,14 +14,20 @@ const HEIGHT: usize = 480;
 static mut FB: Vec<u32> = Vec::new();
 
 /// Convert RGB565 (bit-packed in u16) to RGB888 (bit-packed in u32)
-/// Our source JPG is RGB565, but minifb wants ARGB data
+/// Our source JPG is RGB565, but minifb wants 24bit RGB data stored in a 32bit field
+/// Note that this is using a simple shift to bring the elements into range,
+/// but it will never reach full saturation (therefore color will never be quite correct)
+/// Most RGB565 displays aren't that accurate anyway, but it's worth noting
 fn rgb565_to_rgb888(pixel: u16) -> u32 {
+    // Unpack our 5bit and 6bit RGB elements
     let r = pixel >> 11 & (0x20 - 1);
     let g = pixel >> 5 & (0x40 - 1);
     let b = pixel & (0x20 - 1);
+    // Shift them up so they can get close to full scale
     let r8 = (r << 3) as u32;
     let g8 = (g << 2) as u32;
     let b8 = (b << 3) as u32;
+    // And bit-pack them into a u32 again
     r8 << 16 | g8 << 8 | b8
 }
 
@@ -36,6 +42,9 @@ extern "C" fn callback(p_draw: *mut JPEGDRAW) {
     let _bpp = data.iBpp;
 
     for y in 0..drawheight {
+        // Since we're using byte indexes into single dimension objects for display, we need to calcuate
+        // how far through we are for each x/y position. This is going to depend on the width of the 
+        // buffer for both the source (JPEG) and destination (framebuffer) 
         let yoffset = y * drawwidth;
         let y_draw_offset = (y + starty) * WIDTH;
         for x in 0..drawwidth {
@@ -67,12 +76,16 @@ fn main() {
     });
     window.limit_update_rate(Some(std::time::Duration::from_micros(1_000_000 / 60)));
 
+    // Set up our JPEGDEC objects
     let image = Box::new(unsafe { JPEG_ZeroInitJPEGIMAGE() });
     let imgptr: *mut JPEGIMAGE = Box::into_raw(image);
     const DRAW_CALLBACK: JPEG_DRAW_CALLBACK = Some(callback);
 
+    // Main event loop
     while window.is_open() && !window.is_key_down(Key::Escape) {
         let start = SystemTime::now();
+        // Now onto the main "unsafe" stuff - decoding the image and drawing it!
+        // Need an unsafe around JPEG_openRAM, JPEG_decode, and JPEG_getLastError becuase it's all C
         unsafe {
             let opened = JPEG_openRAM(
                 imgptr,
@@ -92,6 +105,9 @@ fn main() {
                 println!("Last error: {}", errstr);
             }
         }
+        // Seperate unsafe block for our buffer update - it's only unsafe because it uses FB.
+        // If we could use a local buffer, Rust would be able to do it's lifetime/thread safety checks
+        // and we wouldn't need this.
         unsafe {
             window.update_with_buffer(&FB, WIDTH, HEIGHT).unwrap();
         }
