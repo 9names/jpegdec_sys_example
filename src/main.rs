@@ -25,8 +25,8 @@ fn rgb565_to_rgb888(pixel: u16) -> u32 {
     r8 << 16 | g8 << 8 | b8
 }
 
-static mut draw_part:u32 = 1;
-static mut callback_count:u32 = 0;
+static mut draw_part: u32 = 1;
+static mut callback_count: u32 = 0;
 
 fn main() {
     // Can't access static mut safely, press the "I believe" button
@@ -38,9 +38,10 @@ fn main() {
     extern "C" fn callback(p_draw: *mut JPEGDRAW) {
         unsafe {
             callback_count += 1;
-            if callback_count!=draw_part {return};
+            if callback_count != draw_part {
+                return;
+            };
         }
-        
 
         let data = unsafe { *p_draw };
         let startx = data.x;
@@ -71,7 +72,6 @@ fn main() {
                 }
             }
         }
-
     }
 
     const DRAW_CALLBACK: JPEG_DRAW_CALLBACK = Some(callback);
@@ -91,7 +91,6 @@ fn main() {
     let image = Box::new(unsafe { JPEG_ZeroInitJPEGIMAGE() });
     let imgptr: *mut JPEGIMAGE = Box::into_raw(image);
 
-    
     while window.is_open() && !window.is_key_down(Key::Escape) {
         unsafe {
             window.update_with_buffer(&FB, WIDTH, HEIGHT).unwrap();
@@ -117,6 +116,13 @@ fn main() {
         }
         let sleeptime = time::Duration::from_millis(100);
         thread::sleep(sleeptime);
-        unsafe {draw_part+=1;callback_count=0;}
+        unsafe {
+            println!("Draw part {}", draw_part);
+            draw_part += 1;
+            callback_count = 0;
+            if draw_part > 149 {
+                draw_part = 0;
+            }
+        }
     }
 }
