@@ -59,12 +59,13 @@ fn main() {
         // let mut cur_pixel: isize = 0;
         for y in 0..drawheight {
             let yoffset = y * drawwidth;
-            let y_draw_offset = (y + starty) * drawwidth;
-
+            let y_draw_offset = (y + starty) * 640;
+            println!("y_offset {} y_drawoffset {}", yoffset, y_draw_offset);
             for x in 0..drawwidth {
                 let offset = (yoffset + x) as usize;
                 let draw_offset = (startx + y_draw_offset + x) as usize;
                 //FB[offset] = *pixeldata.offset(offset as isize);
+                
                 unsafe {
                     let pix = rgb565_to_rgb888(*pixeldata.offset(offset as isize));
                     //let pix2 = *pixeldata.offset(offset as isize) as u32;
@@ -117,10 +118,9 @@ fn main() {
         let sleeptime = time::Duration::from_millis(100);
         thread::sleep(sleeptime);
         unsafe {
-            println!("Draw part {}", draw_part);
             draw_part += 1;
             callback_count = 0;
-            if draw_part > 149 {
+            if draw_part > 150 {
                 draw_part = 0;
             }
         }
