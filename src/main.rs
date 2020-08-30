@@ -15,9 +15,9 @@ const HEIGHT: usize = 480;
 /// Need our framebuffer to be accessible in the C callback :(
 static mut FB: Vec<u32> = Vec::new();
 fn rgb565_to_rgb888(pixel: u16) -> u32 {
-    let r = pixel >> 11 & 0x20;
-    let g = pixel >> 5 & 0x40;
-    let b = pixel & 0x20;
+    let r = pixel >> 11 & (0x20 - 1);
+    let g = pixel >> 5 & (0x40 - 1);
+    let b = pixel & (0x20 - 1);
     let r8 = (r << 3) as u32;
     let g8 = (g << 2) as u32;
     let b8 = (b << 3) as u32;
