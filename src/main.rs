@@ -15,6 +15,9 @@ const HEIGHT: usize = 480;
 
 /// Need our framebuffer to be accessible in the C callback :(
 static mut FB: Vec<u32> = Vec::new();
+
+/// Convert RGB565 (bit-packed in u16) to RGB888 (bit-packed in u32)
+/// Our source JPG is RGB565, but minifb wants RGBA data
 fn rgb565_to_rgb888(pixel: u16) -> u32 {
     let r = pixel >> 11 & (0x20 - 1);
     let g = pixel >> 5 & (0x40 - 1);
@@ -29,12 +32,10 @@ static mut draw_part: u32 = 1;
 static mut callback_count: u32 = 0;
 
 fn main() {
-    // Can't access static mut safely, press the "I believe" button
     unsafe {
-        // Can't const init a Vec yet, so replace the FB here
+        // Can't const init a static Vec yet, so replace the FB here
         FB = vec![0; WIDTH * HEIGHT]
     }
-    ///TODO: write a real draw callback
     extern "C" fn callback(p_draw: *mut JPEGDRAW) {
         unsafe {
             callback_count += 1;
@@ -55,8 +56,6 @@ fn main() {
             startx, starty, drawwidth, drawheight, bpp
         );
 
-        // let bpp = data.iBpp;
-        // let mut cur_pixel: isize = 0;
         for y in 0..drawheight {
             let yoffset = y * drawwidth;
             let y_draw_offset = (y + starty) * 640;
@@ -64,11 +63,8 @@ fn main() {
             for x in 0..drawwidth {
                 let offset = (yoffset + x) as usize;
                 let draw_offset = (startx + y_draw_offset + x) as usize;
-                //FB[offset] = *pixeldata.offset(offset as isize);
-                
                 unsafe {
                     let pix = rgb565_to_rgb888(*pixeldata.offset(offset as isize));
-                    //let pix2 = *pixeldata.offset(offset as isize) as u32;
                     FB[draw_offset] = pix;
                 }
             }
