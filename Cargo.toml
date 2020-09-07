@@ -8,4 +8,7 @@ edition = "2018"
 
 [dependencies]
 jpegdec_sys = { git = "https://github.com/9names/jpegdec_sys", branch= "master" }
-minifb = "^0.18.0"
+embedded-graphics = "*"
+embedded-graphics-simulator = "*"
+oorandom = "11.1.0"
+sdl2 = "*"
